@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>高斯消元法可视化</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        background: #eef2f7;
+        color: #1e293b;
+      }
+      .wrap {
+        max-width: 1150px;
+        margin: 0 auto;
+        padding: 26px 16px 60px;
+      }
+      h1 {
+        margin: 0 0 20px;
+        font-size: 26px;
+        color: #0f172a;
+      }
+      h2 {
+        margin: 0 0 14px;
+        font-size: 18px;
+        color: #1d4ed8;
+      }
+      .card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+        padding: 20px 22px;
+        margin-bottom: 20px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        padding: 7px 16px; 
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn.primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+        font-weight: 600;
+      }
+      .btn.primary:hover {
+        background: #1d4ed8;
+      }
+      .btn.play {
+        background: #059669;
+        border-color: #059669;
+        color: #fff;
+      }
+      .hint {
+        color: #64748b;
+        font-size: 13px;
+        margin: 14px 0 0;
+      }
+      select {
+        padding: 6px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      /* ---- 输入矩阵 ---- */
+      .mgrid {
+        display: inline-grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      input.cell {
+        width: 72px;
+        padding: 7px 4px;
+        text-align: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 15px;
+        background: #fff;
+        transition: border 0.15s;
+      }
+      input.cell:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      }
+      input.cellb {
+        border-color: #f59e0b;
+        background: #fffbeb;
+      }
+
+      /* ---- 控制条 ---- */
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+      }
+      .controls input[type="range"] {
+        flex: 1;
+        min-width: 160px;
+        accent-color: #2563eb;
+      }
+      #stepCounter {
+        font-size: 14px;
+        color: #475569;
+        white-space: nowrap;
+      }
+
+      /* ---- 结果布局 ---- */
+      .panels {
+        display: flex;
+        gap: 22px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .left {
+        flex: 0 0 auto;
+      }
+      .right {
+        flex: 1 1 340px;
+        min-width: 320px;
+      }
+      #stepTitle {
+        font-size: 17px;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 8px;
+        padding: 10px 12px;
+        background: #eff6ff;
+        border-left: 4px solid #2563eb;
+        border-radius: 8px;
+      }
+      #stepDetail {
+        font-size: 15px;
+        line-height: 1.9;
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        min-height: 64px;
+      }
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 340px;
+        overflow: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .steps li {
+        padding: 8px 12px;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        font-size: 14px;
+        color: #475569;
+      }
+      .steps li:hover {
+        background: #f1f5f9;
+      }
+      .steps li.active {
+        background: #eff6ff;
+        border-left-color: #2563eb;
+        color: #0f172a;
+        font-weight: 600;
+      }
+
+      /* ---- 矩阵展示 ---- */
+      .mtab {
+        border-collapse: separate;
+        border-spacing: 6px;
+      }
+      .mtab td {
+        min-width: 58px;
+        padding: 8px 6px;
+        text-align: center;
+        background: #f8fafc;
+        border: 1.5px solid transparent;
+        border-radius: 8px;
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
+        transition: background 0.3s;
+      }
+      .mtab td.hdr {
+        background: transparent;
+        font-weight: 600;
+        color: #64748b;
+        min-width: 34px;
+        font-size: 13px;
+      }
+      .mtab td.aug {
+        background: #fdf6e3;
+      }
+      .c-src {
+        background: #dbeafe;
+      }
+      .c-op {
+        background: #fef9c3;
+      }
+      .c-swap {
+        background: #ede9fe;
+      }
+      .c-chg {
+        background: #bbf7d0;
+      }
+      .c-pivot {
+        border-color: #e11d48 !important;
+        background: #fecdd3 !important;
+        font-weight: 700;
+      }
+      .legend {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 10px;
+        line-height: 2;
+      }
+      .legend span {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 6px;
+        margin-right: 4px;
+      }
+
+      /* ---- 解向量 ---- */
+      .solbox {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border: 1px dashed #94a3b8;
+        border-radius: 10px;
+        font-size: 15px;
+      }
+      .solchip {
+        display: inline-block;
+        padding: 6px 14px;
+        margin: 4px 6px 4px 0;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-variant-numeric: tabular-nums;
+      }
+      .solchip.done {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .solchip.cur {
+        background: #fde047;
+        color: #854d0e;
+        font-weight: 700;
+      }
+      .solchip.free {
+        background: #fef3c7;
+        color: #92400e;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>🧮 高斯消元法可视化</h1>
+
+      <div class="card" id="inputCard">
+        <h2>① 输入方程组 —— 增广矩阵 [A | b]</h2>
+        <div class="row">
+          <label
+            >未知数个数 n：
+            <select id="selN">
+              <option>2</option>
+              <option selected>3</option>
+              <option>4</option>
+              <option>5</option>
+              <option>6</option>
+            </select>
+          </label>
+          <button class="btn" id="btnPreset">📐 载入示例</button>
+          <button class="btn" id="btnRandom">🎲 随机生成（保证唯一解）</button>
+          <button class="btn" id="btnNoSol">⛔ 示例：无解</button>
+          <button class="btn" id="btnInf">♾️ 示例：无穷多解</button>
+          <button class="btn primary" id="btnSolve">▶ 开始求解</button>
+        </div>
+        <div id="mInput" class="mgrid"></div>
+        <p class="hint">
+          提示：矩阵为 n 行 × (n+1) 列，最后一列（黄色）是等号右端的常数 b。
+          点击"开始求解"后，将逐步展示<b>前向消元</b>与<b>回代</b>的每个步骤，
+          并根据秩自动判定方程组是<b>唯一解</b>、<b>无解</b>还是<b>无穷多解</b>。
+        </p>
+      </div>
+
+      <div class="card" id="resultCard" style="display: none">
+        <h2>② 求解过程（每一步都可以回看）</h2>
+        <div class="controls">
+          <button class="btn" id="btnFirst" title="第一步">⏮</button>
+          <button class="btn" id="btnPrev">◀ 上一步</button>
+          <input type="range" id="slider" min="0" max="0" value="0" />
+          <button class="btn" id="btnNext">下一步 ▶</button>
+          <button class="btn" id="btnLast" title="最后一步">⏭</button>
+          <button class="btn play" id="btnPlay">▶ 自动播放</button>
+          <span id="stepCounter"></span>
+        </div>
+        <div class="panels">
+          <div class="left">
+            <div id="mView"></div>
+            <div class="legend">
+              <span class="c-pivot">主元</span>
+              <span class="c-src">消元用的行（主元行）</span>
+              <span class="c-op">正在改变的行</span>
+              <span class="c-chg">本步被修改的元素</span>
+              <span class="c-swap">交换的行</span>
+            </div>
+            <div id="solView" class="solbox"></div>
+          </div>
+          <div class="right">
+            <div id="stepTitle"></div>
+            <div id="stepDetail"></div>
+            <ol id="stepList" class="steps"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      /* ================= 状态 ================= */
+      var state = { n: 3, steps: [], idx: 0, timer: null };
+
+      var PRESETS = {
+        2: [
+          [2, 3, 8],
+          [1, -1, 1],
+        ],
+        3: [
+          [2, 1, -1, 8],
+          [-3, -1, 2, -11],
+          [-2, 1, 2, -3],
+        ],
+        4: [
+          [5, 2, 0, 0, 12],
+          [1, 6, 2, 0, 21],
+          [0, 2, 7, 3, 36],
+          [0, 0, 2, 8, 30],
+        ],
+        5: [
+          [6, 2, 1, 0, 0, 25],
+          [1, 7, 2, 1, 0, 32],
+          [0, 2, 8, 2, 1, 43],
+          [0, 1, 2, 9, 2, 51],
+          [0, 0, 1, 2, 10, 40],
+        ],
+        6: [
+          [7, 2, 1, 0, 0, 0, 30],
+          [1, 8, 2, 1, 0, 0, 41],
+          [0, 2, 9, 2, 1, 0, 53],
+          [0, 1, 2, 10, 2, 1, 65],
+          [0, 0, 1, 2, 11, 2, 61],
+          [0, 0, 0, 1, 2, 12, 45],
+        ],
+      };
+
+      /* ================= 工具 ================= */
+      function fmt(x) {
+        if (!isFinite(x)) return "∞";
+        if (Math.abs(x) < 1e-12) return "0";
+        var s = parseFloat(x.toPrecision(8)).toString();
+        return s === "-0" ? "0" : s;
+      }
+      function sub(i) {
+        return "x<sub>" + i + "</sub>";
+      }
+
+      /* ================= 输入区 ================= */
+      function buildInputs() {
+        var n = state.n,
+          host = document.getElementById("mInput");
+        host.innerHTML = "";
+        host.style.gridTemplateColumns = "repeat(" + (n + 1) + ", 76px)";
+        for (var i = 0; i < n; i++) {
+          for (var j = 0; j <= n; j++) {
+            var inp = document.createElement("input");
+            inp.type = "text";
+            inp.className = "cell" + (j === n ? " cellb" : "");
+            inp.value = state.mat[i][j];
+            inp.addEventListener("input", function () {
+              var v = parseFloat(this.value);
+              state.mat[this.dataset.i * 1][this.dataset.j * 1] = isNaN(v)
+                ? 0
+                : v;
+            });
+            host.appendChild(inp);
+          }
+        }
+      }
+      function resizeMat(n) {
+        var old = state.mat,
+          oldN = state.n;
+        var m = [];
+        for (var i = 0; i < n; i++) {
+          m.push([]);
+          for (var j = 0; j <= n; j++) {
+            if (old && i < oldN && j <= oldN) m[i].push(old[i][j]);
+            else m[i].push(i === j ? 1 : j === n ? i + 1 : 0); // 新增部分默认：单位阵 + b=i+1
+          }
+        }
+        state.mat = m;
+        state.n = n;
+      }
+      function readInputs() {
+        var n = state.n,
+          A = [],
+          inputs = document.querySelectorAll("#mInput input"),
+          k = 0;
+        for (var i = 0; i < n; i++) {
+          A.push([]);
+          for (var j = 0; j <= n; j++) {
+            var v = parseFloat(inputs[k++].value);
+            if (isNaN(v)) {
+              alert(
+                "第 " +
+                  (i + 1) +
+                  " 行第 " +
+                  (j + 1) +
+                  " 列不是有效数字，请检查输入！",
+              );
+              return null;
+            }
+            A[i].push(v);
+          }
+        }
+        return A;
+      }
+
+      /* ================= 生成消元步骤 ================= */
+      function gaussSteps(A, n) {
+        var steps = [],
+          M = A.map(function (r) {
+            return r.slice();
+          });
+        var sol = new Array(n).fill(null);
+
+        function snap(title, detail, opt) {
+          opt = opt || {};
+          steps.push({
+            title: title,
+            detail: detail,
+            matrix: M.map(function (r) {
+              return r.slice();
+            }),
+            pivot: opt.pivot || null,
+            rowHl: opt.rowHl == null ? -1 : opt.rowHl,
+            srcHl: opt.srcHl == null ? -1 : opt.srcHl,
+            changed: opt.changed || [],
+            swap: opt.swap || null,
+            sol: sol.map(function (v) {
+              return v == null ? null : v;
+            }),
+            curSol: opt.curSol == null ? -1 : opt.curSol,
+          });
+        }
+
+        snap(
+          "初始增广矩阵",
+          "把线性方程组写成增广矩阵 [A | b]。接下来先做<b>前向消元</b>把矩阵化为上三角形，" +
+            "再从最后一个方程开始<b>回代</b>，依次求出所有未知数。",
+        );
+
+        /* ---- 前向消元（逐列选主元，允许某些列没有主元） ---- */
+        var pivCols = [],
+          r = 0; // r = 主元个数 = 秩，pivCols[i] = 第 i 个主元所在列
+        for (var k = 0; k < n; k++) {
+          var p = -1;
+          for (var i2 = r; i2 < n; i2++) {
+            if (Math.abs(M[i2][k]) > 1e-12) {
+              p = i2;
+              break;
+            }
+          }
+          if (p < 0) continue; // 该列在剩余行中全为 0：没有主元，跳过这一列
+          if (p !== r) {
+            // 主元不在当前行，需要交换
+            var t = M[r];
+            M[r] = M[p];
+            M[p] = t;
+            snap(
+              "交换行：R" + (r + 1) + " ↔ R" + (p + 1),
+              "第 " +
+                (r + 1) +
+                " 行第 " +
+                (k + 1) +
+                " 列为 0，无法作主元；" +
+                "向下找到第 " +
+                (p + 1) +
+                " 行该列元素非零，交换两行后继续。",
+              { pivot: [r, k], swap: [r, p] },
+            );
+          }
+          for (var i = r + 1; i < n; i++) {
+            // 用第 r 行消去下面各行第 k 列
+            if (Math.abs(M[i][k]) < 1e-12) continue; // 已经是 0，无需消元
+            var m = M[i][k] / M[r][k],
+              changed = [];
+            for (var j = k + 1; j <= n; j++) {
+              M[i][j] -= m * M[r][j];
+              changed.push([i, j]);
+            }
+            M[i][k] = 0;
+            snap(
+              "消元：R" +
+                (i + 1) +
+                " ← R" +
+                (i + 1) +
+                " − (" +
+                fmt(m) +
+                ")·R" +
+                (r + 1),
+              "乘数 m = a<sub>" +
+                (i + 1) +
+                "" +
+                (k + 1) +
+                "</sub> / a<sub>" +
+                (r + 1) +
+                "" +
+                (k + 1) +
+                "</sub> = " +
+                fmt(m) +
+                "。把第 " +
+                (i + 1) +
+                " 行每个元素减去 " +
+                fmt(m) +
+                " 倍的第 " +
+                (r + 1) +
+                " 行对应元素，使 a<sub>" +
+                (i + 1) +
+                "" +
+                (k + 1) +
+                "</sub> 变为 0（绿色为被修改的元素）。",
+              {
+                pivot: [r, k],
+                rowHl: i,
+                srcHl: r,
+                changed: changed,
+              },
+            );
+          }
+          pivCols.push(k);
+          r++;
+        }
+
+        /* ---- 判断解的情况：无解 / 无穷多解 / 唯一解 ---- */
+        var bad = -1;
+        for (var i3 = r; i3 < n; i3++) {
+          if (Math.abs(M[i3][n]) > 1e-12) {
+            bad = i3;
+            break;
+          }
+        }
+
+        if (bad >= 0) {
+          // 出现 0 = c（c≠0）的矛盾方程
+          snap(
+            "⛔ 判定：方程组无解",
+            "消元后第 " +
+            (bad + 1) +
+            " 行的系数<b>全部为 0</b>，但常数项为 " +
+            fmt(M[bad][n]) +
+            " ≠ 0，即出现矛盾方程 0 = " +
+            fmt(M[bad][n]) +
+            "。<br>秩的判定：rank(A) = " +
+            r +
+            " < rank([A|b]) = " +
+            (r + 1) +
+            "，故方程组<b>无解</b>。",
+            { rowHl: bad, changed: [[bad, n]] },
+          );
+          return { steps: steps, sol: null, verdict: "none" };
+        }
+
+        if (r < n) {
+          // 秩不足且无矛盾：无穷多解
+          var freeCols = [];
+          for (var j3 = 0; j3 < n; j3++)
+            if (pivCols.indexOf(j3) < 0) freeCols.push(j3);
+          freeCols.forEach(function (fc, fi) {
+            sol[fc] = "t" + (fi + 1);
+          }); // 自由变量用参数表示
+          snap(
+            "判定：方程组有无穷多解（r = " + r + " < n = " + n + "）",
+            "消元后没有矛盾方程，但只剩下 " +
+              r +
+              " 个有效方程：rank(A) = rank([A|b]) = " +
+              r +
+              " < n = " +
+              n +
+              "，故方程组有<b>无穷多解</b>。<br>自由变量共 n − r = " +
+              (n - r) +
+              " 个：" +
+              freeCols
+                .map(function (fc) {
+                  return sub(fc + 1);
+                })
+                .join("、") +
+              "（可取任意值），其余为约束变量。下面令自由变量全取 0，回代求出一个<b>特解</b>。",
+          );
+          var num = new Array(n).fill(0); // 数值解数组：自由变量先取 0
+          for (var i4 = r - 1; i4 >= 0; i4--) {
+            var pc = pivCols[i4],
+              sum2 = 0;
+            for (var j4 = pc + 1; j4 < n; j4++) sum2 += M[i4][j4] * num[j4];
+            num[pc] = (M[i4][n] - sum2) / M[i4][pc];
+            sol[pc] = num[pc];
+            snap(
+              "回代：求约束变量 x<sub>" + (pc + 1) + "</sub>（特解）",
+              "把自由变量视为 0，由第 " +
+                (i4 + 1) +
+                " 个方程得 x<sub>" +
+                (pc + 1) +
+                "</sub> = (" +
+                fmt(M[i4][n] - sum2) +
+                ") / (" +
+                fmt(M[i4][pc]) +
+                ") = <b>" +
+                fmt(num[pc]) +
+                "</b>",
+              { rowHl: i4, curSol: pc, changed: [[i4, n]] },
+            );
+          }
+          snap(
+            "✅ 求解完成：无穷多解",
+            "通解 = 特解 + 齐次通解：令自由变量 " +
+              freeCols
+                .map(function (fc, fi) {
+                  return sub(fc + 1) + " = t" + (fi + 1);
+                })
+                .join("，") +
+              "（任意常数），即可写出全部解。上面展示的是 t 全为 0 时的特解：" +
+              pivCols
+                .map(function (pc) {
+                  return sub(pc + 1) + " = " + fmt(num[pc]);
+                })
+                .join("，"),
+          );
+          return {
+            steps: steps,
+            sol: sol.slice(),
+            verdict: "infinite",
+            freeCols: freeCols,
+          };
+        }
+
+        /* ---- 唯一解：上三角回代 ---- */
+        snap(
+          "前向消元完成，得到上三角矩阵",
+          "主对角线以下全部为 0，矩阵已化为上三角形，且 rank(A) = rank([A|b]) = n = " +
+            n +
+            "，方程组有<b>唯一解</b>。现在从最后一个方程开始<b>回代</b>：" +
+            "先求 x<sub>" +
+            n +
+            "</sub>，再逐个向上求出其余未知数。",
+        );
+
+        for (var i = n - 1; i >= 0; i--) {
+          var sum = 0,
+            terms = [];
+          for (var j = i + 1; j < n; j++) {
+            sum += M[i][j] * sol[j];
+            if (Math.abs(M[i][j]) > 1e-12)
+              terms.push("(" + fmt(M[i][j]) + ")·" + sub(j + 1));
+          }
+          var xi = (M[i][n] - sum) / M[i][i];
+          sol[i] = xi;
+          var expr =
+            terms.length === 0
+              ? "b<sub>" + (i + 1) + "</sub> = " + fmt(M[i][n])
+              : "b<sub>" +
+                (i + 1) +
+                "</sub> − (" +
+                terms.join(" + ") +
+                ") = " +
+                fmt(M[i][n] - sum);
+          snap(
+            "回代：求 x<sub>" + (i + 1) + "</sub>",
+            "x<sub>" +
+              (i + 1) +
+              "</sub> = (" +
+              expr +
+              ") / (" +
+              fmt(M[i][i]) +
+              ") = <b>" +
+              fmt(xi) +
+              "</b>",
+            { rowHl: i, curSol: i, changed: [[i, n]] },
+          );
+        }
+        snap(
+          "✅ 求解完成：唯一解",
+          "方程组的解为：" +
+            sol
+              .map(function (v, idx) {
+                return sub(idx + 1) + " = " + fmt(v);
+              })
+              .join("，"),
+        );
+        return { steps: steps, sol: sol.slice(), verdict: "unique" };
+      }
+
+      /* ================= 渲染 ================= */
+      function renderMatrix(st) {
+        var n = state.n,
+          M = st.matrix,
+          h = '<table class="mtab"><tr><td class="hdr"></td>';
+        for (var j = 0; j <= n; j++)
+          h +=
+            '<td class="hdr">' +
+            (j < n ? "x<sub>" + (j + 1) + "</sub>" : "b") +
+            "</td>";
+        h += "</tr>";
+        for (var i = 0; i < n; i++) {
+          h += '<tr><td class="hdr">R' + (i + 1) + "</td>";
+          for (var j2 = 0; j2 <= n; j2++) {
+            var cls = "";
+            if (st.srcHl === i) cls = "c-src";
+            if (st.rowHl === i) cls = "c-op";
+            if (st.swap && (st.swap[0] === i || st.swap[1] === i))
+              cls = "c-swap";
+            for (var c = 0; c < st.changed.length; c++)
+              if (st.changed[c][0] === i && st.changed[c][1] === j2) {
+                cls = "c-chg";
+                break;
+              }
+            if (st.pivot && st.pivot[0] === i && st.pivot[1] === j2)
+              cls = "c-pivot";
+            h +=
+              '<td class="' +
+              cls +
+              (j2 === n ? " aug" : "") +
+              '">' +
+              fmt(M[i][j2]) +
+              "</td>";
+          }
+          h += "</tr>";
+        }
+        document.getElementById("mView").innerHTML = h + "</table>";
+      }
+      function renderSol(st) {
+        var h = "<b>解向量：</b><br>";
+        for (var i = 0; i < state.n; i++) {
+          var v = st.sol[i],
+            isFree = typeof v === "string";
+          h +=
+            '<span class="solchip' +
+            (v == null ? "" : " done") +
+            (isFree ? " free" : "") +
+            (st.curSol === i ? " cur" : "") +
+            '">' +
+            sub(i + 1) +
+            " = " +
+            (v == null ? "?" : isFree ? v + "（自由）" : fmt(v)) +
+            "</span>";
+        }
+        if (state.verdict === "none")
+          h +=
+            '<div style="margin-top:6px;color:#dc2626;font-weight:700">⛔ 方程组无解，不存在解向量</div>';
+        document.getElementById("solView").innerHTML = h;
+      }
+      function buildStepList() {
+        var ol = document.getElementById("stepList");
+        ol.innerHTML = "";
+        state.steps.forEach(function (st, i) {
+          var li = document.createElement("li");
+          li.innerHTML = i + 1 + ". " + st.title;
+          li.onclick = function () {
+            stopPlay();
+            render(i);
+          };
+          ol.appendChild(li);
+        });
+      }
+      function render(idx) {
+        state.idx = idx;
+        var st = state.steps[idx];
+        renderMatrix(st);
+        renderSol(st);
+        document.getElementById("stepTitle").innerHTML =
+          "第 " + (idx + 1) + " 步：" + st.title;
+        document.getElementById("stepDetail").innerHTML = st.detail;
+        var slider = document.getElementById("slider");
+        slider.max = state.steps.length - 1;
+        slider.value = idx;
+        document.getElementById("stepCounter").textContent =
+          "步骤 " + (idx + 1) + " / " + state.steps.length;
+        document.getElementById("btnPrev").disabled = idx === 0;
+        document.getElementById("btnFirst").disabled = idx === 0;
+        document.getElementById("btnNext").disabled =
+          idx === state.steps.length - 1;
+        document.getElementById("btnLast").disabled =
+          idx === state.steps.length - 1;
+        var lis = document.querySelectorAll("#stepList li");
+        for (var i = 0; i < lis.length; i++)
+          lis[i].className = i === idx ? "active" : "";
+        var act = document.querySelector("#stepList li.active");
+        if (act && act.scrollIntoView) act.scrollIntoView({ block: "nearest" });
+      }
+
+      /* ================= 播放控制 ================= */
+      function stopPlay() {
+        if (state.timer) {
+          clearInterval(state.timer);
+          state.timer = null;
+        }
+        document.getElementById("btnPlay").textContent = "▶ 自动播放";
+      }
+      function togglePlay() {
+        if (state.timer) {
+          stopPlay();
+          return;
+        }
+        if (state.idx >= state.steps.length - 1) render(0);
+        document.getElementById("btnPlay").textContent = "⏸ 暂停";
+        state.timer = setInterval(function () {
+          if (state.idx >= state.steps.length - 1) {
+            stopPlay();
+            return;
+          }
+          render(state.idx + 1);
+        }, 1200);
+      }
+
+      /* ================= 求解入口 ================= */
+      function solve() {
+        var A = readInputs();
+        if (!A) return;
+        stopPlay();
+        var res = gaussSteps(A, state.n);
+        state.steps = res.steps;
+        state.sol = res.sol;
+        state.verdict = res.verdict;
+        document.getElementById("resultCard").style.display = "";
+        buildStepList();
+        render(0);
+        document
+          .getElementById("resultCard")
+          .scrollIntoView({ behavior: "smooth" });
+      }
+      function randomFill() {
+        var n = state.n;
+        for (var i = 0; i < n; i++) {
+          for (var j = 0; j <= n; j++) {
+            state.mat[i][j] =
+              i === j
+                ? 5 + Math.floor(Math.random() * 6) // 对角元 5~10，严格对角占优 → 必有唯一解
+                : j === n
+                  ? -10 + Math.floor(Math.random() * 21)
+                  : -3 + Math.floor(Math.random() * 7);
+          }
+        }
+        buildInputs();
+      }
+      function loadCase(kind) {
+        // kind: 'none' 无解 / 'inf' 无穷多解
+        var n = state.n,
+          r1 = [],
+          b1 = 0;
+        for (var j = 0; j < n; j++) {
+          r1.push(j + 1);
+          b1 += j + 1;
+        }
+        var m = [
+          r1.concat(kind === "none" ? 1 : b1), // R1
+          r1
+            .map(function (v) {
+              return 2 * v;
+            })
+            .concat(kind === "none" ? 3 : 2 * b1),
+        ]; // R2 = 2·R1（b 是否同步决定解的情况）
+        for (var i = 2; i < n; i++) {
+          // 其余行保证互相独立（e₁ + eᵢ 的形式）
+          var row = [];
+          for (var j2 = 0; j2 < n; j2++)
+            row.push(j2 === i ? 1 : j2 === 0 ? 1 : 0);
+          m.push(row.concat(i + 1));
+        }
+        state.mat = m;
+        buildInputs();
+      }
+
+      /* ================= 事件绑定与初始化 ================= */
+      document.getElementById("selN").addEventListener("change", function () {
+        resizeMat(this.value * 1);
+        buildInputs();
+      });
+      document.getElementById("btnPreset").onclick = function () {
+        var n = state.n;
+        state.mat = PRESETS[n].map(function (r) {
+          return r.slice();
+        });
+        buildInputs();
+      };
+      document.getElementById("btnRandom").onclick = randomFill;
+      document.getElementById("btnNoSol").onclick = function () {
+        loadCase("none");
+      };
+      document.getElementById("btnInf").onclick = function () {
+        loadCase("inf");
+      };
+      document.getElementById("btnSolve").onclick = solve;
+      document.getElementById("btnPrev").onclick = function () {
+        stopPlay();
+        if (state.idx > 0) render(state.idx - 1);
+      };
+      document.getElementById("btnNext").onclick = function () {
+        stopPlay();
+        if (state.idx < state.steps.length - 1) render(state.idx + 1);
+      };
+      document.getElementById("btnFirst").onclick = function () {
+        stopPlay();
+        render(0);
+      };
+      document.getElementById("btnLast").onclick = function () {
+        stopPlay();
+        render(state.steps.length - 1);
+      };
+      document.getElementById("btnPlay").onclick = togglePlay;
+      document.getElementById("slider").addEventListener("input", function () {
+        stopPlay();
+        render(this.value * 1);
+      });
+      document.addEventListener("keydown", function (e) {
+        if (
+          document.getElementById("resultCard").style.display === "none" ||
+          !state.steps.length
+        )
+          return;
+        if (e.target.tagName === "INPUT" && e.target.type === "text") return;
+        if (e.key === "ArrowLeft") {
+          stopPlay();
+          if (state.idx > 0) render(state.idx - 1);
+        }
+        if (e.key === "ArrowRight") {
+          stopPlay();
+          if (state.idx < state.steps.length - 1) render(state.idx + 1);
+        }
+      });
+
+      /* 初始化：默认载入 3×3 示例 */
+      state.mat = PRESETS[3].map(function (r) {
+        return r.slice();
+      });
+      buildInputs();
+    </script>
+  </body>
+</html>
